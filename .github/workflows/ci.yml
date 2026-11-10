@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-check:
+    runs-on: macos-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Build and validate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          plutil -lint launchd/com.local.disablesleep-by-power-source.plist
+          zsh -n scripts/install.sh scripts/status.sh scripts/uninstall.sh
+
+          mkdir -p build
+          cc -Wall -Wextra -Werror -O2 \
+            -framework CoreFoundation \
+            -framework IOKit \
+            src/disablesleep_by_power_source.c \
+            -o build/com.local.disablesleep-by-power-source
+
+          build/com.local.disablesleep-by-power-source --dry-run
+          build/com.local.disablesleep-by-power-source --test-assertions
